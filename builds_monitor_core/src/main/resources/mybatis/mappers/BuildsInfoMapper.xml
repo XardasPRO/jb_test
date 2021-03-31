@@ -1,0 +1,130 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.protsenko.jetbrains.test.builds_monitor_core.db.mapper.BuildsInfoMapper">
+
+    <resultMap id="ProductBuildInfoMap" type="ProductBuildInfo">
+        <id column="id" jdbcType="INTEGER" property="id"/>
+        <result column="product_code" jdbcType="VARCHAR" property="productCode"/>
+        <result column="build_full_number" jdbcType="VARCHAR" property="buildFullNumber"/>
+        <result column="linux_repo_link" jdbcType="VARCHAR" property="linuxRepoLink"/>
+        <result column="build_size" jdbcType="INTEGER" property="size"/>
+        <result column="checksum_link" jdbcType="VARCHAR" property="checksumLink"/>
+        <result column="current_checksum" jdbcType="VARCHAR" property="currentChecksum"/>
+        <result column="build_date" jdbcType="DATE" property="buildDate"/>
+        <result column="status" jdbcType="VARCHAR" property="status"/>
+        <result column="bytes_loaded" jdbcType="VARCHAR" property="buildBytesLoaded"/>
+        <result column="last_update_time" jdbcType="TIMESTAMP" property="lastUpdateTime"/>
+        <result column="product_info" property="productInfo"/>
+    </resultMap>
+
+
+    <sql id="buildsColumns">
+        product_code,
+        build_full_number,
+        linux_repo_link,
+        build_size,
+        checksum_link,
+        current_checksum,
+        build_date,
+        status,
+        bytes_loaded,
+        last_update_time
+    </sql>
+    <sql id="buildsFields">
+        #{value.productCode},
+        #{value.buildFullNumber},
+        #{value.linuxRepoLink},
+        #{value.size},
+        #{value.checksumLink},
+        #{value.currentChecksum},
+        #{value.buildDate, jdbcType=DATE},
+        #{value.status},
+        #{value.buildBytesLoaded},
+        now
+        (
+        )
+    </sql>
+
+    <insert id="create" keyProperty="id">
+        INSERT INTO builds_info(
+        <include refid="buildsColumns"/>
+        )
+        VALUES (
+        <include refid="buildsFields"></include>
+        )
+    </insert>
+
+    <select id="get" resultMap="ProductBuildInfoMap">
+        SELECT *
+        FROM builds_info
+        WHERE product_code = #{productCode} AND build_full_number = #{buildFullNumber}
+    </select>
+
+    <select id="getAllByProductCode" resultMap="ProductBuildInfoMap">
+        SELECT *
+        FROM builds_info
+        WHERE product_code = #{productCode}
+    </select>
+
+    <select id="getAll" resultMap="ProductBuildInfoMap">
+        SELECT *
+        FROM builds_info
+    </select>
+
+    <select id="getById" resultMap="ProductBuildInfoMap">
+        SELECT *
+        FROM builds_info
+        WHERE id = #{id}
+    </select>
+
+    <update id="update" parameterType="ProductBuildInfo">
+        UPDATE builds_info
+        SET build_size       = #{value.size},
+            linux_repo_link  = #{value.linuxRepoLink},
+            checksum_link    = #{value.checksumLink},
+            current_checksum = #{value.currentChecksum},
+            status           = #{value.status},
+            bytes_loaded     = 0,
+            product_info     = NULL,
+            last_update_time = now()
+        WHERE id = #{value.id}
+    </update>
+
+    <update id="updateDownloaded">
+        UPDATE builds_info
+        SET bytes_loaded = #{bytesLoaded},
+        last_update_time = now()
+        WHERE id = #{id} and status = 'DOWNLOADING'
+        <if test="!force">
+            and bytes_loaded &lt;= #{bytesLoaded}
+        </if>
+    </update>
+
+    <update id="updateProductInfo">
+        UPDATE builds_info
+        SET product_info = #{productInfo}::JSONB,
+            status       = 'UPDATED',
+            bytes_loaded = build_size
+        WHERE id = #{id} AND current_checksum = #{checksum}
+    </update>
+
+    <select id="getNewBuilds" resultMap="ProductBuildInfoMap">
+        SELECT *
+        FROM builds_info
+        WHERE status = 'NEW';
+    </select>
+
+    <select id="getFreezedDownloads" resultMap="ProductBuildInfoMap">
+        SELECT *
+        FROM builds_info
+        WHERE status = 'DOWNLOADING' AND last_update_time &lt;= now() - (#{freezeSeconds} || ' sec') :: INTERVAL
+    </select>
+
+    <insert id="updateStatus">
+        UPDATE builds_info
+        SET status           = #{status},
+            last_update_time = now()
+        WHERE id = #{id}
+    </insert>
+
+</mapper>

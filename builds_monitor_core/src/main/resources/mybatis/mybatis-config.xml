@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+
+<configuration>
+
+    <typeAliases>
+        <typeAlias type="com.protsenko.jetbrains.test.builds_monitor_core.domain.model.product.ProductBuildInfo"
+                   alias="ProductBuildInfo"/>
+    </typeAliases>
+
+    <typeHandlers>
+        <typeHandler handler="org.apache.ibatis.type.LocalTimeTypeHandler"/>
+    </typeHandlers>
+
+    <mappers>
+        <mapper resource="mybatis/mappers/BuildsInfoMapper.xml"/>
+    </mappers>
+</configuration>
